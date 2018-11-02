@@ -88,3 +88,15 @@ def dashboard(request):
     'statuses': statuses
   }
   return render(request, 'accounts/dashboard.html', context)
+
+def addJobApplication(request):
+ if request.method == 'POST':
+   job_title = request.POST['job_title']
+   company = request.POST['company']
+   applicationdate = request.POST['applicationdate']
+   status = request.POST['status']
+   source = request.POST['source']
+   japp = JobApplication(jobTitle=job_title, company=company, applyDate=applicationdate, msgId='', source =source, user = request.user)
+   japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
+   japp.save()
+   return dashboard(request)
