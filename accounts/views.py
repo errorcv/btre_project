@@ -101,3 +101,19 @@ def addJobApplication(request):
    japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
    japp.save()
    return dashboard(request)
+
+def filterJobApplications(request):
+  if request.method == 'POST':
+    start = request.POST['start']
+    end = request.POST['end']
+    query = JobApplication.objects.filter(user_id=request.user.id)
+    if start != '':
+      query = query.filter(applyDate__gte=start)
+    if end != '':
+      query = query.filter(applyDate__lte=end)
+    user_job_apps = query.order_by('-applyDate')
+    context = {
+      'job_apps': user_job_apps
+    }
+    return render(request, 'accounts/dashboard.html', context)
+

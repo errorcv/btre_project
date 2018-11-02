@@ -98,12 +98,13 @@
   <!-- Date Query -->
   <section >
       <div align="right" style="margin-right:160px;">
-        <form action="/nodes" method="POST">
+        <form action="{% url 'filterJobApplications' %}" method="POST">
             From: <input size="15" type="text"  name="start" id="datepicker" /> To: <input size="15" type="text" id="datepicker1" name="end" />
             <script type="text/javascript">
               document.getElementById('datepicker').value = "";
               document.getElementById('datepicker1').value = "";
             </script>
+            {% csrf_token %}
             <input type="submit" name="button" id="button" value="Query" />
       </div>
   </section>
