@@ -9,6 +9,7 @@ import string
 
 from datetime import datetime
 from dateutil import tz
+from datetime import timezone
 
 from requests import exceptions as requests_errors
 
@@ -157,7 +158,7 @@ def fetchJobApplications(user):
     time_string = ''
     profile = Profile.objects.get(user=user)
     if profile.gmail_last_update_time != 0:
-        time_string = 'AND after:' + str(profile.gmail_last_update_time)
+        time_string = ' AND after:' + str(profile.gmail_last_update_time)
         print('its not the first time query will be added : ' + time_string)
     else:
         print('its the first time.. so we are querying all mails')
@@ -180,6 +181,6 @@ def fetchJobApplications(user):
         GetMessage(GMAIL, 'me', message['id'], user, 'Vettery')
     for message in indeedMessages:
         GetMessage(GMAIL, 'me', message['id'], user, 'Indeed')
-    now = int(time.time())
+    now = datetime.utcnow().timestamp()
     profile.gmail_last_update_time = now
     profile.save()
