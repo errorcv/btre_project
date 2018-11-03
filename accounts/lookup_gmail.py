@@ -3,6 +3,7 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from googleapiclient import errors
+from .models import Profile
 import string
 
 
@@ -153,15 +154,22 @@ def ListMessagesMatchingQuery(service, user_id, query=''):
     print('An error occurred: %s' % error)
 
 def fetchJobApplications(user):
+    time_string = ''
+    profile = Profile.objects.get(user=user)
+    if profile.gmail_last_update_time != 0:
+        time_string = 'AND after:' + str(profile.gmail_last_update_time)
+        print('its not the first time query will be added : ' + time_string)
+    else:
+        print('its the first time.. so we are querying all mails')
     #initiates Gmail API
     usa = user.social_auth.get(provider='google-oauth2')
     GMAIL = build('gmail', 'v1', credentials=Credentials(usa))
 
     #print(str(time.gmtime()))
-    linkedInMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:jobs-listings@linkedin.com AND subject:You applied for')# AND after:2018/01/01')
-    hiredMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:reply@hired.com AND subject:Interview Request')
-    vetteryMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:@connect.vettery.com AND subject:Interview Request')
-    indeedMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:indeedapply@indeed.com AND subject:Indeed Application')
+    linkedInMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:jobs-listings@linkedin.com AND subject:You applied for' + time_string)# AND after:2018/01/01')
+    hiredMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:reply@hired.com AND subject:Interview Request' + time_string)
+    vetteryMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:@connect.vettery.com AND subject:Interview Request' + time_string)
+    indeedMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:indeedapply@indeed.com AND subject:Indeed Application' + time_string)
     #print('there is ' + str(len(messages)) + ' messages sent from jobs-listings@linkedin.com')
 
     for message in linkedInMessages:
@@ -172,3 +180,6 @@ def fetchJobApplications(user):
         GetMessage(GMAIL, 'me', message['id'], user, 'Vettery')
     for message in indeedMessages:
         GetMessage(GMAIL, 'me', message['id'], user, 'Indeed')
+    now = int(time.time())
+    profile.gmail_last_update_time = now
+    profile.save()
