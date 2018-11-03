@@ -103,6 +103,8 @@ def GetMessage(service, user_id, msg_id, user, source):
                 print(image_url)
             else:
                 image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
+            if len(image_url) > 300:
+                image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg' 
             if(source == 'Vettery'):
                 jobTitle = body[body.index('Role: ') + 6 : body.index('Salary')]
                 jobTitle = removeHtmlTags(jobTitle)
