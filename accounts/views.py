@@ -101,3 +101,31 @@ def dashboard(request):
     'statuses': statuses
   }
   return render(request, 'accounts/dashboard.html', context)
+
+def addJobApplication(request):
+ if request.method == 'POST':
+   job_title = request.POST['job_title']
+   company = request.POST['company']
+   applicationdate = request.POST['applicationdate']
+   status = request.POST['status']
+   source = request.POST['source']
+   japp = JobApplication(jobTitle=job_title, company=company, applyDate=applicationdate, msgId='', source =source, user = request.user)
+   japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
+   japp.save()
+   return dashboard(request)
+
+def filterJobApplications(request):
+  if request.method == 'POST':
+    start = request.POST['start']
+    end = request.POST['end']
+    query = JobApplication.objects.filter(user_id=request.user.id)
+    if start != '':
+      query = query.filter(applyDate__gte=start)
+    if end != '':
+      query = query.filter(applyDate__lte=end)
+    user_job_apps = query.order_by('-applyDate')
+    context = {
+      'job_apps': user_job_apps
+    }
+    return render(request, 'accounts/dashboard.html', context)
+

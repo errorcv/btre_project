@@ -8,6 +8,8 @@ urlpatterns = [
     path('register', views.register, name='register'),
     path('logout', views.logout, name='logout'),
     path('updateJobApplication', views.updateJobApplication, name='updateJobApplication'),
+    path('filterJobApplications', views.filterJobApplications, name='filterJobApplications'),
+    path('addJobApplication', views.addJobApplication, name='addJobApplication'),
     url('', include('social_django.urls', namespace='social')),
     path('dashboard', views.dashboard, name='dashboard')
 ]
