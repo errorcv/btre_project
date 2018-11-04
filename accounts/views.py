@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from contacts.models import Contact
 from .models import JobApplication
 from .models import ApplicationStatus
-from .lookup_gmail import fetchJobApplications
+from .gmail_lookup import fetchJobApplications
 from django.http import HttpResponseRedirect
 from background_task import background
 
