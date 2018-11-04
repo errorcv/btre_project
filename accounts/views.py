@@ -6,6 +6,7 @@ from .models import JobApplication
 from .models import ApplicationStatus
 from .lookup_gmail import fetchJobApplications
 from django.http import HttpResponseRedirect
+from background_task import background
 
 def register(request):
   if request.method == 'POST':
@@ -88,9 +89,20 @@ def deleteJobApplication(request):
   else:
     return dashboard(request)    
 
+@background(schedule=15)
+def scheduleFetcher(user_id):
+    user = User.objects.get(pk=user_id)
+    if user.social_auth.filter(provider='google-oauth2'):
+        fetchJobApplications(user)
+
 def dashboard(request):
   user_job_apps = JobApplication.objects.filter(user_id=request.user.id).order_by('-applyDate')
   statuses = ApplicationStatus.objects.all()
+
+  #it'll be used for background tasking in production
+  #refs. https://medium.com/@robinttt333/running-background-tasks-in-django-f4c1d3f6f06e
+  #https://django-background-tasks.readthedocs.io/en/latest/
+  #scheduleFetcher.now(request.user.id)
   if request.user.social_auth.filter(provider='google-oauth2'):
       fetchJobApplications(request.user)
 

@@ -43,6 +43,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
+    'background_task',
     'social_django' # <- Here,
 ]
 
@@ -114,6 +115,8 @@ AUTH_PASSWORD_VALIDATORS = [
 LOGIN_URL = 'login'
 
 LOGIN_REDIRECT_URL = 'dashboard'
+
+AUTH_PROFILE_MODULE = 'accounts.Profile'
 
 AUTHENTICATION_BACKENDS = (
  'social_core.backends.open_id.OpenIdAuth',

@@ -3,10 +3,13 @@ from googleapiclient.discovery import build
 from httplib2 import Http
 from oauth2client import file, client, tools
 from googleapiclient import errors
+from .models import Profile
+import string
 
 
 from datetime import datetime
 from dateutil import tz
+from datetime import timezone
 
 from requests import exceptions as requests_errors
 
@@ -18,6 +21,13 @@ from .models import JobApplication
 import base64
 import time
 
+def removeHtmlTags(string):
+    string = string.replace('\\r', '')
+    string = string.replace('\\t', '')
+    string = string.replace('\\n', '')
+    string = string.replace('<br>', '')
+    return string
+
 def convertTime(base):
 
     # METHOD 2: Auto-detect zones:
@@ -27,7 +37,7 @@ def convertTime(base):
     # utc = datetime.utcnow()
     #utc = datetime.strptime('2011-01-21 02:37:21', '%Y-%m-%d %H:%M:%S')
     print(base)
-    base = base[:25]
+    base = base[:25].strip()
     utc = datetime.strptime(base, '%a, %d %b %Y %H:%M:%S')
     #Mon, 1 Oct 2018 22:35:03 +0000 (UTC)
 
@@ -77,30 +87,38 @@ def GetMessage(service, user_id, msg_id, user, source):
             elif(source == 'Hired.com'):
                 jobTitle = subject[subject.index('st: ') + 4 : subject.index(' at ')]
                 company = subject[subject.index('at ') + 3 : subject.index('(')]
+            elif(source == 'Indeed'):
+                jobTitle = subject[subject.index('Indeed Application: ') + 20 : ]
         elif header['name'] == 'Date':
             date = header['value']
             date = convertTime(str(date))
-
-    for part in message['payload']['parts']:
-        if(part['mimeType'] == 'text/html'):
-            body = str(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
-            s = find_nth(body, 'https://media.licdn.com', 2)
-            if(s != -1):
-                e = find_nth(body, '" alt="' + company + '"', 1)
-                image_url = body[s : e].replace('&amp;', '&')
-                print(image_url)
-            else:
-                image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
+    try:
+        for part in message['payload']['parts']:
+            if(part['mimeType'] == 'text/html'):
+                body = str(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
+                s = find_nth(body, 'https://media.licdn.com', 2)
+                if(s != -1):
+                    e = find_nth(body, '" alt="' + company + '"', 1)
+                    image_url = body[s : e].replace('&amp;', '&')
+                    print(image_url)
+                else:
+                    image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
+                if len(image_url) > 300:
+                    image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
+                if(source == 'Vettery'):
+                    jobTitle = body[body.index('Role: ') + 6 : body.index('Salary')]
+                    jobTitle = removeHtmlTags(jobTitle)
+                    company = body[body.index('interview with ') + 15 : body.index('. Interested?')]
+                elif(source == 'Indeed'):
+                    company = body[body.index('Get job updates from <b>') + 24 : body.index('</b>.<br><i>By selecting')]
+    except Exception as e:
+        print(e)
 
     if user.is_authenticated:
       inserted_before = JobApplication.objects.all().filter(msgId=msg_id)
-      if not inserted_before:
+      if not inserted_before and jobTitle != '' and company != '':
         japp = JobApplication(jobTitle=jobTitle, company=company, applyDate=date, msgId=msg_id, source = source, user = user, companyLogo = image_url)
         japp.save()
-
-
-    ja = JobApplication(jobTitle, company, date)
-    return ja
   except errors.HttpError as error:
     print('An error occurred: %s' % error)
 
@@ -137,16 +155,33 @@ def ListMessagesMatchingQuery(service, user_id, query=''):
     print('An error occurred: %s' % error)
 
 def fetchJobApplications(user):
+    time_string = ''
+    profile = Profile.objects.get(user=user)
+    if profile.gmail_last_update_time != 0:
+        time_string = ' AND after:' + str(profile.gmail_last_update_time)
+        print('its not the first time query will be added : ' + time_string)
+    else:
+        print('its the first time.. so we are querying all mails')
     #initiates Gmail API
     usa = user.social_auth.get(provider='google-oauth2')
     GMAIL = build('gmail', 'v1', credentials=Credentials(usa))
 
     #print(str(time.gmtime()))
-    linkedInMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:jobs-listings@linkedin.com AND subject:You applied for')# AND after:2018/01/01')
-    hiredMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'reply@hired.com AND subject:Interview Request')
+    linkedInMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:jobs-listings@linkedin.com AND subject:You applied for' + time_string)# AND after:2018/01/01')
+    hiredMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:reply@hired.com AND subject:Interview Request' + time_string)
+    #vetteryMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:@connect.vettery.com AND subject:Interview Request' + time_string)
+    indeedMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:indeedapply@indeed.com AND subject:Indeed Application' + time_string)
     #print('there is ' + str(len(messages)) + ' messages sent from jobs-listings@linkedin.com')
-
+    #print(str(len(vetteryMessages)) + ' vettery messages')
+    #print(str(len(indeedMessages)) + ' indeed messages')
     for message in linkedInMessages:
         GetMessage(GMAIL, 'me', message['id'], user, 'LinkedIn')
     for message in hiredMessages:
         GetMessage(GMAIL, 'me', message['id'], user, 'Hired.com')
+    for message in indeedMessages:
+        GetMessage(GMAIL, 'me', message['id'], user, 'Indeed')
+    #for message in vetteryMessages:
+    #    GetMessage(GMAIL, 'me', message['id'], user, 'Vettery')
+    now = datetime.utcnow().timestamp()
+    profile.gmail_last_update_time = now
+    profile.save()
