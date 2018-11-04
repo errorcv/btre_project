@@ -17,9 +17,8 @@
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
   <!-- Lightbox -->
     <link rel="stylesheet" href="{% static 'css/lightbox.min.css' %}">
-  <!-- AddNew -->
-    <link rel='stylesheet' href='https://unpkg.com/antd/dist/antd.css'>
-    <link rel="stylesheet" href="{% static 'css/addnew.css' %}">
+  <!-- AntDesign -->
+    <link rel='stylesheet' href="{% static 'css/antd.css' %}">
 
   <!-- TITLE -->
     <title>Error CV Dashboard {% block title %}{% endblock %}</title>
@@ -43,7 +42,7 @@
 	    $(document).ready(function() {
 		    $('#example').DataTable( {
 		        dom: 'Bfrtip',
-		        buttons: [ 'copy', 'csv', 'excel', 'pdf', 'print'  ]
+		        buttons: [ 'copy', 'csv' ]
 		        } );
 		    } );
 	</script>
@@ -95,20 +94,6 @@
   <!-- Alerts -->
   {% include 'partials/_alerts.html' %}
 
-  <!-- Date Query -->
-  <section >
-      <div align="right" style="margin-right:160px;">
-        <form action="{% url 'filterJobApplications' %}" method="POST">
-            From: <input size="15" type="text"  name="start" id="datepicker" /> To: <input size="15" type="text" id="datepicker1" name="end" />
-            <script type="text/javascript">
-              document.getElementById('datepicker').value = "";
-              document.getElementById('datepicker1').value = "";
-            </script>
-            {% csrf_token %}
-            <input type="submit" name="button" id="button" value="Query" />
-      </div>
-  </section>
-
   <!-- Job Application Table -->
 
  <section id="dashboard" class="py-0">
@@ -116,17 +101,27 @@
       <div class="row">
         <div class="col-md-12">
             <h2>Welcome {{ user.first_name }}!</h2>
-            Here are the job applications that you have applied
-            <div align="left" id="container" style="margin-left: 995px; padding-bottom:10px">
-                <script>
-                    var mountNode = document.getElementById('container');
-                </script>
-                <script src='https://unpkg.com/react@16.x/umd/react.development.js'></script>
-                <script src='https://unpkg.com/react-dom@16.x/umd/react-dom.development.js'></script>
-                <script src='https://unpkg.com/moment/min/moment-with-locales.js'></script>
-                <script src='https://unpkg.com/antd/dist/antd-with-locales.js'></script>
-                <script  src="{% static 'js/addnew.js' %} "></script>
-            </div>
+            <p style="padding-bottom:30px">Here are the job applications that you have applied</p>
+
+  <!-- Date Query -->
+  <section >
+      <table>
+          <div>
+              <th>
+                  <form action="{% url 'filterJobApplications' %}" method="POST">
+                    <t style="margin-left:26px">From: </t> <input style="margin-bottom:6px" size="12" type="text" name="start" id="datepicker" /> To: <input size="12" type="text" id="datepicker1" name="end"/>
+                    <script type="text/javascript">
+                      document.getElementById('datepicker').value = "";
+                      document.getElementById('datepicker1').value = "";
+                    </script>
+                    {% csrf_token %}
+                    <input type="submit" name="button" id="button" value="Query" />
+                  </form>
+              </th>
+              <th> </th>
+          </div>
+      </table>
+  </section>
 
             {% if job_apps %}
             <div align="left" id="mainWrapper">
@@ -143,7 +138,18 @@
                                         <th scope="col">Application Date</th>
                                         <th scope="col">Status</th>
                                         <th scope="col">Source</th>
-                                        <th></th>
+                                        <th>
+                                            <div align="right" id="container" style="margin-right: 0px; padding-bottom:0px" class="">
+                                                <script>
+                                                    var mountNode = document.getElementById('container');
+                                                </script>
+                                                <script src='https://unpkg.com/react@16.x/umd/react.development.js'></script>
+                                                <script src='https://unpkg.com/react-dom@16.x/umd/react-dom.development.js'></script>
+                                                <script src='https://unpkg.com/moment/min/moment-with-locales.js'></script>
+                                                <script src="{% static 'js/antd-with-locales.js' %} "></script>
+                                                <script  src="{% static 'js/addnew.js' %} "></script>
+                                            </div>
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -156,7 +162,7 @@
                                                 <td>{{ job_app.jobTitle }}</td>
                                                 <td>{{ job_app.applyDate }}</td>
                                                 <td>
-                                                    <select name="ddStatus">
+                                                    <select name="ddStatus"  onchange="this.form.submit()">
                                                         <option value="-1">---------</option>
                                                         {% for status in statuses %}
                                                             <option value="{{status.pk}}"
@@ -167,12 +173,16 @@
                                                     </select>
                                                 </td>
                                                 <td>{{ job_app.source }}</td>
+                                                {% csrf_token %}
+                                                <input type="hidden" name="pk" value="{{job_app.pk}}">
+                                            </form>    
                                                 <td>
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="pk" value="{{job_app.pk}}">
-                                                    <input type="submit" value="Update" class="btn btn-secondary btn-block">
+                                                    <form action="{% url 'deleteJobApplication' %}" method="POST">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="pk" value="{{job_app.pk}}">
+                                                        <input type="submit" value="-" style="margin-left: 15px; margin-top:10px">
+                                                    </form>    
                                                 </td>
-                                            </form>
                                         </tr>
                                     {% endfor %}
                                 </tbody>
