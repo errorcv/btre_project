@@ -118,7 +118,8 @@ def addJobApplication(request):
    print(body['status'])
    status = int(body['status'])
    source = body['source']
-   japp = JobApplication(jobTitle=job_title, company=company, applyDate=applicationdate, msgId='', source =source, user = request.user)
+  
+   japp = JobApplication(jobTitle=job_title, company=company, applyDate=applicationdate, msgId='', source =source, user = request.user, companyLogo = '/static/images/errorcvlogotemporary.png')
    japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
    japp.save()
    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))

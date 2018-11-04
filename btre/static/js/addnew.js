@@ -42,10 +42,10 @@ var CollectionCreateForm = Form.create()(/** @class */ (function (_super) {
                 React.createElement(FormItem, { label: "Job Title" }, getFieldDecorator('job_title', {
                     rules: [{ required: true, message: 'Please enter the job title!' }]
                 })(React.createElement(Input, null))),
-                React.createElement(AppDatePicker, { label: "Application Date" }, getFieldDecorator('applicationdate', {
+                React.createElement(FormItem, { label: "Application Date" }, getFieldDecorator('applicationdate', {
                     rules: [{ required: true, message: 'Please select the application date!' }]
                 })(React.createElement(Input, null))),
-                React.createElement(FormItem, { label: "" }, getFieldDecorator('job_title', {
+                React.createElement(FormItem, { label: "" }, getFieldDecorator('none', {
                 })),
                 React.createElement(FormItem, { label: "Please select the status:" }, getFieldDecorator('status', {
                     rules: [{ required: true, message: 'Please select the status!' }], initialValue: '1'

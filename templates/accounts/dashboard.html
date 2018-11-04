@@ -119,11 +119,6 @@
                   </form>
               </th>
               <th> </th>
-              <th>
-                {% csrf_token %}
-                <input type="hidden" name="pk" value="{{job_app.pk}}">
-                <input type="submit" value="Save" align="right" style="margin-bottom:6px">
-              </th>
           </div>
       </table>
   </section>
@@ -167,7 +162,7 @@
                                                 <td>{{ job_app.jobTitle }}</td>
                                                 <td>{{ job_app.applyDate }}</td>
                                                 <td>
-                                                    <select name="ddStatus">
+                                                    <select name="ddStatus"  onchange="this.form.submit()">
                                                         <option value="-1">---------</option>
                                                         {% for status in statuses %}
                                                             <option value="{{status.pk}}"
