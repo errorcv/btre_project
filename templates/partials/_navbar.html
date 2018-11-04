@@ -14,8 +14,6 @@
 			<ul class="nav navbar-nav menu_nav ml-auto">
 				<li class="nav-item active"><a class="nav-link" href="#home">Home</a></li> 
 				<li class="nav-item"><a class="nav-link" href="#feature">How it works</a></li> 
-				<li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Login</a>
-				<li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a>
 				<li class="nav-item submenu dropdown">
 					<a href="#" class="nav-link dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Pages</a>
 					<ul class="dropdown-menu">
@@ -29,7 +27,46 @@
 						<li class="nav-item"><a class="nav-link" href="single-blog.html">Blog Details</a></li>
 					</ul>
 				</li> 
-				<li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>
+				<li class="nav-item"><a class="nav-link" href="contact.html">Contact</a></li>{% if user.is_authenticated %}
+				<li
+				{% if 'dashboard' in request.path %}
+				  class="nav-item"
+				{% else %}
+				  class="nav-item"
+				{% endif %}
+				>
+				  <a class="nav-link" href="{% url 'dashboard' %}">
+				   Welcome {{ user.username }} (Dashboard)</a>
+				</li>
+				<li class="nav-item">
+				  <a href="javascript:{document.getElementById('logout').submit()}" class="nav-link">
+					<i class="fas fa-sign-out-alt"></i> Logout
+				  </a>
+				  <form action="{% url 'logout' %}" method="POST" id="logout">
+					{% csrf_token %}
+					<input type="hidden">
+				  </form>
+				</li>
+			  {% else %}
+				<li
+				{% if 'register' in request.path %}
+				  class="nav-item active"
+				{% else %}
+				  class="nav-item"
+				{% endif %}
+				>
+				  <a class="nav-link" href="{% url 'register' %}">Register</a>
+				</li>
+				<li
+				{% if 'login' in request.path %}
+				  class="nav-item"
+				{% else %}
+				  class="nav-item"
+				{% endif %}
+				>
+				  <a class="nav-link" href="{% url 'login' %}">Login</a>
+				</li>
+			  {% endif %}
 			</ul>
 		</div> 
 	</div>
