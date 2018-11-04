@@ -151,3 +151,9 @@ def filterJobApplications(request):
   else:
     return dashboard(request)
 
+def metrics(request):
+  context = {
+
+  }
+  return render(request, 'accounts/metrics.html', context)
+
