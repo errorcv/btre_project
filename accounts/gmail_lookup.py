@@ -5,11 +5,7 @@ from oauth2client import file, client, tools
 from googleapiclient import errors
 from .models import Profile
 import string
-
-
 from datetime import datetime
-from dateutil import tz
-from datetime import timezone
 
 from requests import exceptions as requests_errors
 
@@ -20,43 +16,13 @@ from social_django.utils import load_strategy
 from .models import JobApplication
 import base64
 import time
+from .gmail_utils import convertTime
+from .gmail_utils import removeHtmlTags
+from .gmail_utils import find_nth
 
-def removeHtmlTags(string):
-    string = string.replace('\\r', '')
-    string = string.replace('\\t', '')
-    string = string.replace('\\n', '')
-    string = string.replace('<br>', '')
-    return string
+custom_image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
 
-def convertTime(base):
-
-    # METHOD 2: Auto-detect zones:
-    from_zone = tz.tzutc()
-    to_zone = tz.tzlocal()
-
-    # utc = datetime.utcnow()
-    #utc = datetime.strptime('2011-01-21 02:37:21', '%Y-%m-%d %H:%M:%S')
-    print(base)
-    base = base[:25].strip()
-    utc = datetime.strptime(base, '%a, %d %b %Y %H:%M:%S')
-    #Mon, 1 Oct 2018 22:35:03 +0000 (UTC)
-
-    # Tell the datetime object that it's in UTC time zone since
-    # datetime objects are 'naive' by default
-    utc = utc.replace(tzinfo=from_zone)
-
-    # Convert time zone
-    central = utc.astimezone(to_zone)
-    return central.strftime('%Y-%m-%d')
-    #return central.strftime('%a, %d %b %Y %H:%M:%S %z')
-
-def find_nth(string, substring, n):
-   if (n == 1):
-       return string.find(substring)
-   else:
-       return string.find(substring, find_nth(string, substring, n - 1) + 1)
-
-def GetMessage(service, user_id, msg_id, user, source):
+def get_email_detail(service, user_id, msg_id, user, source):
   """Get a Message with given ID.
   Args:
     service: Authorized Gmail API service instance.
@@ -71,15 +37,8 @@ def GetMessage(service, user_id, msg_id, user, source):
     jobTitle = ''
     company = ''
     date = ''
-    '''for part in message['payload']['parts']:
-        if(part['mimeType'] == 'text/html'):
-            print()
-            print(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
-            print()
-            print()'''
     for header in message['payload']['headers']:
         if header['name'] == 'Subject':
-            #print('Message subject: %s' % header['value'])
             subject = str(header['value'])
             if(source == 'LinkedIn'):
                 jobTitle = subject[subject.index('for ') + 4 : subject.index(' at ')]
@@ -95,17 +54,19 @@ def GetMessage(service, user_id, msg_id, user, source):
     try:
         for part in message['payload']['parts']:
             if(part['mimeType'] == 'text/html'):
-                body = str(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
-                s = find_nth(body, 'https://media.licdn.com', 2)
-                if(s != -1):
-                    e = find_nth(body, '" alt="' + company + '"', 1)
-                    image_url = body[s : e].replace('&amp;', '&')
-                    print(image_url)
-                else:
-                    image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
-                if len(image_url) > 300:
-                    image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
-                if(source == 'Vettery'):
+                if(source == 'LinkedIn'):
+                    #get mail's body as a string
+                    body = str(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
+                    s = find_nth(body, 'https://media.licdn.com', 2)
+                    if(s != -1):
+                        e = find_nth(body, '" alt="' + company + '"', 1)
+                        image_url = body[s : e].replace('&amp;', '&')
+                        print(image_url)
+                    else:
+                        image_url = custom_image_url
+                    if len(image_url) > 300:
+                        image_url = custom_image_url
+                elif(source == 'Vettery'):
                     jobTitle = body[body.index('Role: ') + 6 : body.index('Salary')]
                     jobTitle = removeHtmlTags(jobTitle)
                     company = body[body.index('interview with ') + 15 : body.index('. Interested?')]
@@ -124,7 +85,7 @@ def GetMessage(service, user_id, msg_id, user, source):
 
 
 
-def ListMessagesMatchingQuery(service, user_id, query=''):
+def get_emails_with_custom_query(service, user_id, query=''):
   """List all Messages of the user's mailbox matching the query.
   Args:
     service: Authorized Gmail API service instance.
@@ -156,32 +117,35 @@ def ListMessagesMatchingQuery(service, user_id, query=''):
 
 def fetchJobApplications(user):
     time_string = ''
+    #checks user last update time and add it as a query parameter
     profile = Profile.objects.get(user=user)
     if profile.gmail_last_update_time != 0:
         time_string = ' AND after:' + str(profile.gmail_last_update_time)
         print('its not the first time query will be added : ' + time_string)
     else:
         print('its the first time.. so we are querying all mails')
+
     #initiates Gmail API
     usa = user.social_auth.get(provider='google-oauth2')
     GMAIL = build('gmail', 'v1', credentials=Credentials(usa))
 
-    #print(str(time.gmtime()))
-    linkedInMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:jobs-listings@linkedin.com AND subject:You applied for' + time_string)# AND after:2018/01/01')
-    hiredMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:reply@hired.com AND subject:Interview Request' + time_string)
-    #vetteryMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:@connect.vettery.com AND subject:Interview Request' + time_string)
-    indeedMessages = ListMessagesMatchingQuery(GMAIL, 'me', 'from:indeedapply@indeed.com AND subject:Indeed Application' + time_string)
-    #print('there is ' + str(len(messages)) + ' messages sent from jobs-listings@linkedin.com')
-    #print(str(len(vetteryMessages)) + ' vettery messages')
-    #print(str(len(indeedMessages)) + ' indeed messages')
+    #retrieves user email's with custom query parameter
+    linkedInMessages = get_emails_with_custom_query(GMAIL, 'me', 'from:jobs-listings@linkedin.com AND subject:You applied for' + time_string)# AND after:2018/01/01')
+    hiredMessages = get_emails_with_custom_query(GMAIL, 'me', 'from:reply@hired.com AND subject:Interview Request' + time_string)
+    #vetteryMessages = get_emails_with_custom_query(GMAIL, 'me', 'from:@connect.vettery.com AND subject:Interview Request' + time_string)
+    indeedMessages = get_emails_with_custom_query(GMAIL, 'me', 'from:indeedapply@indeed.com AND subject:Indeed Application' + time_string)
+
+    #retvieves specific email's detail one by one
     for message in linkedInMessages:
-        GetMessage(GMAIL, 'me', message['id'], user, 'LinkedIn')
+        get_email_detail(GMAIL, 'me', message['id'], user, 'LinkedIn')
     for message in hiredMessages:
-        GetMessage(GMAIL, 'me', message['id'], user, 'Hired.com')
+        get_email_detail(GMAIL, 'me', message['id'], user, 'Hired.com')
     for message in indeedMessages:
-        GetMessage(GMAIL, 'me', message['id'], user, 'Indeed')
+        get_email_detail(GMAIL, 'me', message['id'], user, 'Indeed')
     #for message in vetteryMessages:
     #    GetMessage(GMAIL, 'me', message['id'], user, 'Vettery')
+
+    #updates user last update time after all this
     now = datetime.utcnow().timestamp()
     profile.gmail_last_update_time = now
     profile.save()

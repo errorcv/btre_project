@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 from contacts.models import Contact
 from .models import JobApplication
 from .models import ApplicationStatus
-from .lookup_gmail import fetchJobApplications
+from .gmail_lookup import fetchJobApplications
 from django.http import HttpResponseRedirect
 from background_task import background
 
@@ -102,9 +102,9 @@ def dashboard(request):
   #it'll be used for background tasking in production
   #refs. https://medium.com/@robinttt333/running-background-tasks-in-django-f4c1d3f6f06e
   #https://django-background-tasks.readthedocs.io/en/latest/
+  #https://stackoverflow.com/questions/41205607/how-to-activate-the-process-queue-in-django-background-tasks
   #scheduleFetcher.now(request.user.id)
-  if request.user.social_auth.filter(provider='google-oauth2'):
-      fetchJobApplications(request.user)
+  scheduleFetcher(request.user.id)
 
   context = {
     'job_apps': user_job_apps,
