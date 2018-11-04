@@ -173,12 +173,16 @@
                                                     </select>
                                                 </td>
                                                 <td>{{ job_app.source }}</td>
+                                                {% csrf_token %}
+                                                <input type="hidden" name="pk" value="{{job_app.pk}}">
+                                            </form>    
                                                 <td>
-                                                    {% csrf_token %}
-                                                    <input type="hidden" name="pk" value="{{job_app.pk}}">
-                                                    <input type="submit" value="-" style="margin-left: 15px; margin-top:10px">
+                                                    <form action="{% url 'deleteJobApplication' %}" method="POST">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="pk" value="{{job_app.pk}}">
+                                                        <input type="submit" value="-" style="margin-left: 15px; margin-top:10px">
+                                                    </form>    
                                                 </td>
-                                            </form>
                                         </tr>
                                     {% endfor %}
                                 </tbody>

@@ -80,6 +80,14 @@ def updateJobApplication(request):
   else:
     return dashboard(request)
 
+def deleteJobApplication(request):
+  if request.method == 'POST':
+    user_job_app = JobApplication.objects.get(pk=request.POST['pk'])
+    user_job_app.delete()
+    return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+  else:
+    return dashboard(request)    
+
 def dashboard(request):
   user_job_apps = JobApplication.objects.filter(user_id=request.user.id).order_by('-applyDate')
   statuses = ApplicationStatus.objects.all()
@@ -122,7 +130,7 @@ def addJobApplication(request):
    japp = JobApplication(jobTitle=job_title, company=company, applyDate=applicationdate, msgId='', source =source, user = request.user, companyLogo = '/static/images/errorcvlogotemporary.png')
    japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
    japp.save()
-   return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+   return HttpResponseRedirect('/accounts/dashboard')
 
 def filterJobApplications(request):
   if request.method == 'POST':
