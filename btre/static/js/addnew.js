@@ -1,3 +1,19 @@
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = jQuery.trim(cookies[i]);
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+var csrftoken = getCookie('csrftoken');
+
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
@@ -8,7 +24,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var Button = antd.Button, Modal = antd.Modal, Form = antd.Form, Input = antd.Input, Radio = antd.Radio;
+var Button = antd.Button, Modal = antd.Modal, Form = antd.Form, Input = antd.Input, Radio = antd.Radio, AppDatePicker = antd.DatePicker;
 var FormItem = Form.Item;
 var CollectionCreateForm = Form.create()(/** @class */ (function (_super) {
     __extends(class_1, _super);
@@ -25,17 +41,19 @@ var CollectionCreateForm = Form.create()(/** @class */ (function (_super) {
                 })(React.createElement(Input, null))),
                 React.createElement(FormItem, { label: "Job Title" }, getFieldDecorator('job_title', {
                     rules: [{ required: true, message: 'Please enter the job title!' }]
-                })(React.createElement(Input, { type: "textarea" }))),
-                React.createElement(FormItem, { label: "Application Date (yyyy-mm-dd)" }, getFieldDecorator('applicationdate', {
-                    rules: [{ required: true, message: 'Please enter the application date in yyyy-mm-dd format!' }]
                 })(React.createElement(Input, null))),
+                React.createElement(AppDatePicker, { label: "Application Date" }, getFieldDecorator('applicationdate', {
+                    rules: [{ required: true, message: 'Please select the application date!' }]
+                })(React.createElement(Input, null))),
+                React.createElement(FormItem, { label: "" }, getFieldDecorator('job_title', {
+                })),
                 React.createElement(FormItem, { label: "Please select the status:" }, getFieldDecorator('status', {
-                    rules: [{ required: true, message: 'Please select the status!' }], initialValue: 'inprogress'
+                    rules: [{ required: true, message: 'Please select the status!' }], initialValue: '1'
                 })(React.createElement(Radio.Group, null,
-                    React.createElement(Radio, { value: "planning" }, "Planning"),
-                    React.createElement(Radio, { value: "inprogress" }, "In Progress"),
-                    React.createElement(Radio, { value: "success" }, "Success"),
-                    React.createElement(Radio, { value: "fail" }, "Fail")))),
+                    React.createElement(Radio, { value: "1" }, "Planning"),
+                    React.createElement(Radio, { value: "2" }, "In Progress"),
+                    React.createElement(Radio, { value: "3" }, "Success"),
+                    React.createElement(Radio, { value: "4" }, "Fail")))),
                 React.createElement(FormItem, { label: "Source" }, getFieldDecorator('source', {
                     rules: [{ required: true, message: 'Please enter the source!' }]
                 })(React.createElement(Input, null))))));
@@ -61,7 +79,16 @@ var CollectionsPage = /** @class */ (function (_super) {
                 if (err) {
                     return;
                 }
-
+                else
+                    fetch('addJobApplication', {
+                      method: 'POST',
+                      headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrftoken
+                      },
+                      body: JSON.stringify(values)
+                    })
                 console.log('Received values of form: ', values);
                 form.resetFields();
                 _this.setState({ visible: false });
@@ -74,7 +101,7 @@ var CollectionsPage = /** @class */ (function (_super) {
     }
     CollectionsPage.prototype.render = function () {
         return (React.createElement("div", null,
-            React.createElement(Button, { type: "primary", onClick: this.showModal }, "Add New"),
+            React.createElement(Button, { type: "circle", onClick: this.showModal }, "+"),
             React.createElement(CollectionCreateForm, { wrappedComponentRef: this.saveFormRef, visible: this.state.visible, onCancel: this.handleCancel, onCreate: this.handleCreate })));
     };
     return CollectionsPage;

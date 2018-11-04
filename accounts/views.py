@@ -77,6 +77,8 @@ def updateJobApplication(request):
         user_job_app.save()
         messages.success(request, '.')
         return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
+  else:
+    return dashboard(request)
 
 def dashboard(request):
   user_job_apps = JobApplication.objects.filter(user_id=request.user.id).order_by('-applyDate')
@@ -90,6 +92,7 @@ def dashboard(request):
   }
   return render(request, 'accounts/dashboard.html', context)
 
+"""
 def addJobApplication(request):
  if request.method == 'POST':
    job_title = request.POST['job_title']
@@ -101,6 +104,24 @@ def addJobApplication(request):
    japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
    japp.save()
    return dashboard(request)
+   """
+
+import json
+def addJobApplication(request):
+ if request.method == 'POST':
+   body = json.loads(request.body)
+   print(body)
+   job_title = body['job_title']
+   company = body['company']
+   print(company)
+   applicationdate = body['applicationdate']
+   print(body['status'])
+   status = int(body['status'])
+   source = body['source']
+   japp = JobApplication(jobTitle=job_title, company=company, applyDate=applicationdate, msgId='', source =source, user = request.user)
+   japp.applicationStatus = ApplicationStatus.objects.get(pk=status)
+   japp.save()
+   return HttpResponseRedirect(request.META.get('HTTP_REFERER'))
 
 def filterJobApplications(request):
   if request.method == 'POST':
@@ -112,8 +133,12 @@ def filterJobApplications(request):
     if end != '':
       query = query.filter(applyDate__lte=end)
     user_job_apps = query.order_by('-applyDate')
+    statuses = ApplicationStatus.objects.all()
     context = {
-      'job_apps': user_job_apps
+      'job_apps': user_job_apps,
+      'statuses': statuses
     }
     return render(request, 'accounts/dashboard.html', context)
+  else:
+    return dashboard(request)
 
