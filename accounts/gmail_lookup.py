@@ -20,7 +20,6 @@ from .gmail_utils import convertTime
 from .gmail_utils import removeHtmlTags
 from .gmail_utils import find_nth
 
-custom_image_url = 'https://d31kswug2i6wp2.cloudfront.net/images/3_0/icon_company_no-logo_200x200.jpg'
 
 def get_email_detail(service, user_id, msg_id, user, source):
   """Get a Message with given ID.
@@ -33,10 +32,12 @@ def get_email_detail(service, user_id, msg_id, user, source):
     A Message.
   """
   try:
+    custom_image_url = '/static/images/errorcvlogotemporary.png'
     message = service.users().messages().get(userId=user_id, id=msg_id, format='full').execute()
     jobTitle = ''
     company = ''
     date = ''
+    image_url = ''
     for header in message['payload']['headers']:
         if header['name'] == 'Subject':
             subject = str(header['value'])
@@ -54,14 +55,13 @@ def get_email_detail(service, user_id, msg_id, user, source):
     try:
         for part in message['payload']['parts']:
             if(part['mimeType'] == 'text/html'):
+                #get mail's body as a string
+                body = str(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
                 if(source == 'LinkedIn'):
-                    #get mail's body as a string
-                    body = str(base64.urlsafe_b64decode(part['body']['data'].encode('ASCII')))
                     s = find_nth(body, 'https://media.licdn.com', 2)
                     if(s != -1):
                         e = find_nth(body, '" alt="' + company + '"', 1)
                         image_url = body[s : e].replace('&amp;', '&')
-                        print(image_url)
                     else:
                         image_url = custom_image_url
                     if len(image_url) > 300:
@@ -70,13 +70,18 @@ def get_email_detail(service, user_id, msg_id, user, source):
                     jobTitle = body[body.index('Role: ') + 6 : body.index('Salary')]
                     jobTitle = removeHtmlTags(jobTitle)
                     company = body[body.index('interview with ') + 15 : body.index('. Interested?')]
+                    image_url = custom_image_url
                 elif(source == 'Indeed'):
                     company = body[body.index('Get job updates from <b>') + 24 : body.index('</b>.<br><i>By selecting')]
+                    image_url = custom_image_url
+                elif(source == 'Hired.com'):
+                    image_url = custom_image_url    
     except Exception as e:
         print(e)
 
     if user.is_authenticated:
       inserted_before = JobApplication.objects.all().filter(msgId=msg_id)
+      print(image_url)
       if not inserted_before and jobTitle != '' and company != '':
         japp = JobApplication(jobTitle=jobTitle, company=company, applyDate=date, msgId=msg_id, source = source, user = user, companyLogo = image_url)
         japp.save()
